@@ -256,12 +256,27 @@ function withEditedHtml(documentModel: NormalizedDocument | undefined): Normaliz
 }
 
 function selectDuplicate(duplicate: DuplicatePoint) {
+  persistVisibleEditorSnapshots();
   activeDuplicateId.value = duplicate.duplicateId;
   activeSlaveDocumentId.value = duplicate.slaves[0]?.documentId ?? activeSlaveDocumentId.value;
 }
 
 function handleEditorChange(payload: EditorChangePayload) {
+  cacheEditorSnapshot(payload);
+}
+
+function cacheEditorSnapshot(payload: EditorChangePayload) {
   editedHtmlByDocumentId.value[payload.documentId] = payload.html;
+}
+
+function persistVisibleEditorSnapshots() {
+  const snapshots = [mainEditorRef.value?.getSnapshot(), slaveEditorRef.value?.getSnapshot()].filter(
+    (snapshot): snapshot is EditorChangePayload => Boolean(snapshot)
+  );
+
+  for (const snapshot of snapshots) {
+    cacheEditorSnapshot(snapshot);
+  }
 }
 
 function setMessage(nextMessage: string, tone: "info" | "success" | "error" = "info") {
@@ -368,11 +383,16 @@ watch(activeDuplicate, (duplicate) => {
     return;
   }
 
+  persistVisibleEditorSnapshots();
   const containsCurrentSlave = duplicate.slaves.some((item) => item.documentId === activeSlaveDocumentId.value);
   if (!containsCurrentSlave) {
     activeSlaveDocumentId.value = duplicate.slaves[0]?.documentId ?? activeSlaveDocumentId.value;
   }
 });
+
+watch(activeSlaveDocumentId, () => {
+  persistVisibleEditorSnapshots();
+}, { flush: "sync" });
 </script>
 
 <template>

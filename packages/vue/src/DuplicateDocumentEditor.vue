@@ -224,12 +224,16 @@ watch(
       return;
     }
 
+    const isSameDocument = documentId === previousDocumentId;
     if (editor.value.getHTML() !== props.documentModel.html) {
       editor.value.commands.setContent(props.documentModel.html, { emitUpdate: false });
+      applyHighlights(!isSameDocument && props.autofocusHighlight);
+      return;
     }
 
-    // 普通编辑会通过父组件同步 html 回来，此时只更新高亮装饰，不应打断用户当前位置。
-    applyHighlights(documentId !== previousDocumentId && props.autofocusHighlight);
+    if (!isSameDocument) {
+      applyHighlights(props.autofocusHighlight);
+    }
   }
 );
 
