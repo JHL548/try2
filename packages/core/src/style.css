@@ -1,0 +1,31 @@
+.dupdoc-highlight {
+  border-radius: 4px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  padding: 0 2px;
+}
+
+.dupdoc-highlight--high {
+  background: rgba(239, 68, 68, 0.22);
+  border-bottom: 2px solid rgba(239, 68, 68, 0.75);
+}
+
+.dupdoc-highlight--medium {
+  background: rgba(245, 158, 11, 0.24);
+  border-bottom: 2px solid rgba(245, 158, 11, 0.8);
+}
+
+.dupdoc-highlight--low {
+  background: rgba(59, 130, 246, 0.2);
+  border-bottom: 2px solid rgba(59, 130, 246, 0.7);
+}
+
+.dupdoc-highlight--active {
+  outline: 2px solid rgba(15, 23, 42, 0.3);
+  outline-offset: 2px;
+}
+
+.dupdoc-highlight--ignored {
+  opacity: 0.62;
+  border-bottom-style: dashed;
+}

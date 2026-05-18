@@ -1,0 +1,33 @@
+{
+  "name": "word-duplicate-demo",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/frontend"
+  ],
+  "scripts": {
+    "check:encoding": "node scripts/check-encoding.mjs",
+    "dev:frontend": "npm run dev -w apps/frontend",
+    "dev:frontend:npm": "npm run dev:npm -w apps/frontend",
+    "dev:backend": "python -m uvicorn app.main:app --reload --app-dir apps/backend",
+    "build": "npm run build --workspaces --if-present",
+    "build:frontend:npm": "npm run build:npm -w apps/frontend",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "pack:dry-run": "npm pack --dry-run -w packages/core && npm pack --dry-run -w packages/vue",
+    "verify:publish": "npm run check:encoding && npm run typecheck && npm run build && npm run pack:dry-run",
+    "verify:npm:install": "npm install --prefix .npm-verify --cache .npm-verify-cache --registry=https://registry.npmjs.org/ @jhl548/duplicate-doc-core@latest @jhl548/duplicate-doc-vue@latest",
+    "verify:npm:typecheck": "npm run typecheck:npm -w apps/frontend",
+    "verify:npm:build": "npm run build:npm -w apps/frontend",
+    "verify:npm": "npm run verify:npm:install && npm run verify:npm:typecheck && npm run verify:npm:build",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "typescript": "latest",
+    "vite": "latest",
+    "vitest": "^4.1.6",
+    "vue-tsc": "latest"
+  }
+}

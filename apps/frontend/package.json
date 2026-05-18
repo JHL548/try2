@@ -1,0 +1,20 @@
+{
+  "name": "word-duplicate-demo-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "dev:npm": "vite --host 0.0.0.0 --mode npm",
+    "build": "vue-tsc -p tsconfig.json --noEmit && vite build",
+    "build:npm": "vue-tsc -p tsconfig.npm.json --noEmit && vite build --mode npm",
+    "typecheck:npm": "vue-tsc -p tsconfig.npm.json --noEmit",
+    "typecheck": "vue-tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@jhl548/duplicate-doc-vue": "0.1.1",
+    "@vitejs/plugin-vue": "latest",
+    "vue": "latest",
+    "vue-json-pretty": "^2.6.0"
+  }
+}

@@ -1,0 +1,12 @@
+---
+description: npm publish and demo verification rules
+alwaysApply: true
+---
+
+# npm Publish And Demo Verification
+
+- Before publishing `@jhl548/duplicate-doc-*`, run the package `typecheck`, `build`, and `npm pack --dry-run`; verify entry points, type declarations, style subpaths, and the `files` whitelist.
+- Do not commit or publish npm tokens, `.npmrc`, one-time passwords, temporary verification directories, or generated tarballs. Stop and warn the user if credentials are found.
+- Public scoped packages must declare `publishConfig.access = "public"` and an explicit `license`.
+- The demo should default to local workspace source so plugin changes remain easy. Use the npm verification scripts and npm mode when validating published packages so Vite aliases or TypeScript paths do not resolve back to `packages/*/src`.
+- Publish `@jhl548/duplicate-doc-core` first, then packages that depend on it. If npm reports an existing version, missing permissions, or auth failure, stop instead of forcing a publish.

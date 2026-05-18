@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.npm-verify/
+.npm-verify-cache/
+__pycache__/
+.pytest_cache/
+.venv/
+*.pyc
+apps/backend/storage/*
+!apps/backend/storage/.gitkeep

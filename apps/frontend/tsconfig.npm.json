@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@jhl548/duplicate-doc-core": [".npm-verify/node_modules/@jhl548/duplicate-doc-core/dist/index.d.ts"],
+      "@jhl548/duplicate-doc-vue": [".npm-verify/node_modules/@jhl548/duplicate-doc-vue/dist/index.d.ts"]
+    }
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "useDefineForClassFields": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "jsx": "react-jsx",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true,
+    "ignoreDeprecations": "6.0",
+    "declaration": true,
+    "sourceMap": true,
+    "baseUrl": ".",
+    "paths": {
+      "@jhl548/duplicate-doc-core": ["packages/core/src"],
+      "@jhl548/duplicate-doc-vue": ["packages/vue/src"],
+      "@duplicate-doc/react": ["packages/react/src"]
+    }
+  }
+}

@@ -1,0 +1,517 @@
+@import "@jhl548/duplicate-doc-core/style.css";
+
+.dupdoc-editor {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100%;
+  overflow: hidden;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.dupdoc-editor__toolbar {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0;
+  align-items: center;
+  min-height: 40px;
+  overflow-x: auto;
+  overflow-y: visible;
+  padding: 4px 10px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7) inset;
+  scrollbar-width: thin;
+}
+
+.dupdoc-editor__toolbar-group {
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 2px;
+  align-items: center;
+  min-width: 0;
+  padding: 0 8px;
+  border: 0;
+  border-right: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.dupdoc-editor__toolbar-group--select {
+  flex: 0 0 58px;
+  padding-left: 0;
+}
+
+.dupdoc-editor__toolbar-group--action {
+  margin-left: auto;
+  padding-right: 0;
+  border-right: 0;
+}
+
+.dupdoc-editor__toolbar select {
+  width: 100%;
+  height: 30px;
+  padding: 0 20px 0 8px;
+  border: 0;
+  border-radius: 8px;
+  color: #475467;
+  font-size: 13px;
+  font-weight: 700;
+  background: transparent;
+  outline: none;
+}
+
+.dupdoc-toolbar-button,
+.dupdoc-toolbar-color {
+  position: relative;
+  display: inline-grid;
+  width: 28px;
+  height: 30px;
+  place-items: center;
+  border: 0;
+  border-radius: 7px;
+  color: #667085;
+  font: inherit;
+  background: transparent;
+  outline: none;
+  transition:
+    color 0.16s ease,
+    background 0.16s ease,
+    box-shadow 0.16s ease,
+    transform 0.16s ease;
+}
+
+.dupdoc-toolbar-button {
+  cursor: pointer;
+}
+
+.dupdoc-toolbar-button:hover:not(:disabled),
+.dupdoc-toolbar-color:hover {
+  color: #344054;
+  background: rgba(15, 23, 42, 0.055);
+  box-shadow: none;
+  transform: none;
+}
+
+.dupdoc-toolbar-button.active {
+  color: #5b5bd6;
+  background: rgba(91, 91, 214, 0.12);
+  box-shadow: none;
+}
+
+.dupdoc-toolbar-button--primary {
+  color: #667085;
+  background: transparent;
+  box-shadow: none;
+}
+
+.dupdoc-toolbar-button--primary:hover {
+  color: #344054;
+  background: rgba(15, 23, 42, 0.055);
+}
+
+.dupdoc-toolbar-button--add {
+  grid-auto-flow: column;
+  grid-auto-columns: max-content;
+  gap: 6px;
+  width: auto;
+  min-width: 58px;
+  padding: 0 8px;
+}
+
+.dupdoc-toolbar-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.dupdoc-toolbar-text {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.dupdoc-toolbar-icon--italic {
+  font-style: italic;
+}
+
+.dupdoc-toolbar-icon--strike {
+  text-decoration: line-through;
+}
+
+.dupdoc-toolbar-button[data-tooltip]::after,
+.dupdoc-toolbar-color[data-tooltip]::after {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 8px);
+  left: 50%;
+  padding: 6px 8px;
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  background: rgba(15, 23, 42, 0.9);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.16);
+  content: attr(data-tooltip);
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -4px);
+  transition:
+    opacity 0.14s ease,
+    transform 0.14s ease;
+}
+
+.dupdoc-toolbar-button[data-tooltip]:hover::after,
+.dupdoc-toolbar-color[data-tooltip]:hover::after {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.dupdoc-toolbar-button:disabled,
+.dupdoc-editor__toolbar select:disabled,
+.dupdoc-editor__toolbar input:disabled {
+  cursor: not-allowed;
+  opacity: 0.44;
+}
+
+.dupdoc-toolbar-color {
+  cursor: pointer;
+}
+
+.dupdoc-toolbar-color input[type="color"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.dupdoc-editor__body {
+  min-height: 0;
+  overflow: auto;
+}
+
+@media (max-width: 720px) {
+  .dupdoc-editor__toolbar {
+    padding: 4px 8px;
+  }
+
+  .dupdoc-editor__toolbar-group {
+    flex: 0 0 auto;
+    padding: 0 6px;
+  }
+
+  .dupdoc-editor__toolbar-group--select {
+    flex-basis: 54px;
+  }
+
+  .dupdoc-editor__toolbar-group--action {
+    margin-left: 0;
+  }
+
+  .dupdoc-toolbar-button,
+  .dupdoc-toolbar-color {
+    width: 28px;
+    height: 30px;
+  }
+}
+
+.dupdoc-editor__content {
+  min-height: 100%;
+  padding: 28px 34px;
+  color: #1f2937;
+  font-size: 15px;
+  line-height: 2;
+  outline: none;
+}
+
+.dupdoc-editor__content p {
+  margin: 0 0 14px;
+}
+
+.dupdoc-editor__content h1,
+.dupdoc-editor__content h2,
+.dupdoc-editor__content h3 {
+  margin: 0 0 18px;
+  color: #101828;
+  line-height: 1.4;
+}
+
+.dupdoc-editor__content h1 {
+  font-size: 28px;
+}
+
+.dupdoc-editor__content h2 {
+  font-size: 22px;
+}
+
+.dupdoc-editor__content h3 {
+  font-size: 18px;
+}
+
+.dupdoc-editor__content ul,
+.dupdoc-editor__content ol {
+  margin: 0 0 16px 22px;
+  padding: 0;
+}
+
+.dupdoc-editor__content blockquote {
+  margin: 18px 0;
+  padding: 12px 16px;
+  border-left: 4px solid rgba(91, 110, 225, 0.45);
+  border-radius: 10px;
+  background: rgba(91, 110, 225, 0.08);
+}
+
+.dupdoc-editor__content a {
+  color: #4f46e5;
+  text-decoration: underline;
+}
+
+.dupdoc-editor__content code {
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: rgba(15, 23, 42, 0.08);
+  color: #344054;
+}
+
+.dupdoc-editor__content pre {
+  overflow-x: auto;
+  margin: 18px 0;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: #111827;
+  color: #f9fafb;
+  line-height: 1.7;
+}
+
+.dupdoc-editor__content mark {
+  border-radius: 4px;
+  padding: 0 2px;
+}
+
+.dupdoc-editor__content hr {
+  margin: 22px 0;
+  border: 0;
+  border-top: 1px solid rgba(91, 110, 225, 0.2);
+}
+
+.dupdoc-editor__content img {
+  display: block;
+  max-width: 100%;
+  margin: 16px 0;
+  border-radius: 14px;
+  box-shadow: 0 12px 30px rgba(36, 54, 112, 0.12);
+}
+
+.dupdoc-editor__content ul[data-type="taskList"] {
+  margin-left: 0;
+  list-style: none;
+}
+
+.dupdoc-editor__content li[data-type="taskItem"] {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.dupdoc-editor__content li[data-type="taskItem"] > label {
+  margin-top: 4px;
+}
+
+.dupdoc-editor__content li[data-type="taskItem"] > div {
+  flex: 1;
+}
+
+.dupdoc-editor__content table {
+  width: 100%;
+  margin: 18px 0;
+  border-collapse: collapse;
+  overflow: hidden;
+  border-radius: 12px;
+}
+
+.dupdoc-editor__content th,
+.dupdoc-editor__content td {
+  min-width: 120px;
+  padding: 10px 12px;
+  border: 1px solid rgba(91, 110, 225, 0.18);
+  vertical-align: top;
+}
+
+.dupdoc-editor__content th {
+  background: rgba(91, 110, 225, 0.1);
+  color: #344054;
+  font-weight: 700;
+}
+
+/* Compact toolbar skin. Kept at the end to override the lightweight default rules above. */
+.dupdoc-editor {
+  container-type: inline-size;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 14px 48px rgba(15, 23, 42, 0.08);
+}
+
+.dupdoc-editor__toolbar {
+  position: sticky;
+  z-index: 5;
+  top: 0;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0;
+  align-items: center;
+  min-height: 36px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 3px 8px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.1);
+  background: #f5f5f6;
+  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.72);
+  scrollbar-width: thin;
+}
+
+.dupdoc-editor__toolbar-group {
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 1px;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 6px;
+  border: 0;
+  border-right: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.dupdoc-editor__toolbar-group--select {
+  flex-basis: 84px;
+  padding-left: 0;
+}
+
+.dupdoc-editor__toolbar-group--action {
+  margin-left: auto;
+  padding-right: 0;
+  border-right: 0;
+  background: transparent;
+}
+
+.dupdoc-editor__toolbar select {
+  width: 100%;
+  height: 28px;
+  padding: 0 24px 0 8px;
+  border: 0;
+  border-radius: 7px;
+  color: #1f2937;
+  font-size: 12px;
+  font-weight: 700;
+  background: transparent;
+  box-shadow: none;
+}
+
+.dupdoc-toolbar-button,
+.dupdoc-toolbar-color {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  color: #475467;
+  background: transparent;
+  box-shadow: none;
+}
+
+.dupdoc-toolbar-button:hover:not(:disabled),
+.dupdoc-toolbar-color:hover {
+  color: #1f2937;
+  background: rgba(15, 23, 42, 0.06);
+  box-shadow: none;
+  transform: none;
+}
+
+.dupdoc-toolbar-button.active {
+  color: #4f46e5;
+  background: rgba(79, 70, 229, 0.12);
+  box-shadow: none;
+}
+
+.dupdoc-toolbar-button--primary {
+  color: #475467;
+  background: transparent;
+  box-shadow: none;
+}
+
+.dupdoc-toolbar-button--primary:hover:not(:disabled) {
+  color: #4f46e5;
+  background: rgba(79, 70, 229, 0.12);
+}
+
+.dupdoc-toolbar-button--add {
+  min-width: 58px;
+  padding: 0 8px;
+}
+
+.dupdoc-toolbar-icon {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.dupdoc-toolbar-text {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.dupdoc-toolbar-button:disabled,
+.dupdoc-editor__toolbar select:disabled,
+.dupdoc-editor__toolbar input:disabled {
+  cursor: not-allowed;
+  opacity: 0.38;
+  transform: none;
+}
+
+.dupdoc-editor__body {
+  background: #ffffff;
+}
+
+@container (max-width: 760px) {
+  .dupdoc-editor__toolbar {
+    flex-wrap: wrap;
+    gap: 2px 0;
+    min-height: 68px;
+    align-content: flex-start;
+  }
+
+  .dupdoc-editor__toolbar-group {
+    padding: 0 5px;
+  }
+
+  .dupdoc-editor__toolbar-group--action {
+    margin-left: 0;
+  }
+}
+
+@container (max-width: 460px) {
+  .dupdoc-editor__toolbar {
+    min-height: 100px;
+  }
+
+  .dupdoc-editor__toolbar-group--select {
+    flex-basis: 72px;
+  }
+
+  .dupdoc-toolbar-button,
+  .dupdoc-toolbar-color {
+    width: 27px;
+    height: 27px;
+  }
+}
