@@ -1,0 +1,74 @@
+name: Publish to npm
+
+on:
+  workflow_dispatch:
+    inputs:
+      package:
+        description: 选择要发布的包
+        type: choice
+        options:
+          - core
+          - vue
+          - both
+        required: true
+        default: both
+      version_bump:
+        description: 版本升级方式（仅作提示，请先在 package.json 中手动改好版本号）
+        type: choice
+        options:
+          - manual
+        default: manual
+
+jobs:
+  publish-core:
+    if: ${{ github.event.inputs.package == 'core' || github.event.inputs.package == 'both' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/core
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+
+      - name: 安装依赖
+        run: npm ci
+        working-directory: .
+
+      - name: 执行发布前校验
+        run: npm run prepack
+
+      - name: 发布 @jhl548/duplicate-doc-core
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  publish-vue:
+    needs: publish-core
+    if: ${{ always() && (github.event.inputs.package == 'vue' || (github.event.inputs.package == 'both' && needs.publish-core.result == 'success')) }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/vue
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+
+      - name: 安装依赖
+        run: npm ci
+        working-directory: .
+
+      - name: 执行发布前校验
+        run: npm run prepack
+
+      - name: 发布 @jhl548/duplicate-doc-vue
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
