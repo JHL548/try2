@@ -120,6 +120,7 @@ interface DuplicatePoint {
 interface TextRange {
   start: number;
   end: number;
+  matchedText?: string;
   blockId?: string;
   sectionPath?: string[];
   region?: DocumentRegion;
@@ -133,6 +134,7 @@ interface TextRange {
 
 - `start/end` 必须基于对应文档的 `plainText`。
 - `start` 包含，`end` 不包含，即 `[start, end)`。
+- 可编辑场景建议提供 `matchedText`，其值必须等于原始命中文本，即 `plainText.slice(start, end)`；插件会用它判断编辑后范围是否仍可信，避免删除命中文本后误高亮后方内容。
 - 一个重复点可以在主文档和多个从文档中出现。
 - 一个文档内同一个重复点可以有多个 `ranges`，用于表示跨多个片段的重复内容。
 - `blockId/sectionPath/region/tableContext/semanticType` 建议从 `rangeMap` 中按 `start` 所在块补齐。

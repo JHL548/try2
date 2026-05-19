@@ -95,6 +95,7 @@ def build_text_range(document: NormalizedDocument, start: int, length: int) -> T
     return TextRange(
         start=start,
         end=start + length,
+        matchedText=document.plainText[start : start + length],
         blockId=entry.blockId if entry else None,
         sectionPath=entry.sectionPath if entry else None,
         region=entry.region if entry else None,

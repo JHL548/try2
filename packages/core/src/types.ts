@@ -24,6 +24,7 @@ export interface TableCellContext {
 export interface TextRange {
   start: number;
   end: number;
+  matchedText?: string;
   blockId?: string;
   sectionPath?: string[];
   region?: DocumentRegion;

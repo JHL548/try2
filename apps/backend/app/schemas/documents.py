@@ -30,6 +30,7 @@ class TableCellContext(BaseModel):
 class TextRange(BaseModel):
     start: int = Field(ge=0)
     end: int = Field(ge=0)
+    matchedText: str | None = None
     blockId: str | None = None
     sectionPath: list[str] | None = None
     region: DocumentRegion | None = None

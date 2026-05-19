@@ -76,6 +76,7 @@ function rangeOf(documentModel: NormalizedDocument, blockId: string) {
   return {
     start: blockRange.textStart,
     end: blockRange.textEnd,
+    matchedText: documentModel.plainText.slice(blockRange.textStart, blockRange.textEnd),
     blockId,
     sectionPath: blockRange.sectionPath,
     region: blockRange.region,

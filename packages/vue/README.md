@@ -59,7 +59,7 @@ const highlights = computed<DuplicateHighlight[]>(() => [
     similarity: 0.92,
     active: true,
     label: "重复点 1",
-    ranges: [{ start: 6, end: 20, blockId: "b-1" }]
+    ranges: [{ start: 6, end: 20, matchedText: "这是一段需要高亮的重复内容", blockId: "b-1" }]
   }
 ]);
 
@@ -128,6 +128,7 @@ interface NormalizedDocument {
 - `plainText` 必须与算法计算重复点范围时使用的文本一致。
 - `rangeMap` 负责把结构块和纯文本偏移关联起来，便于联调和问题排查。
 - `DuplicateHighlight.ranges[].start/end` 使用基于 `plainText` 的左闭右开区间。
+- 可编辑场景建议传入 `DuplicateHighlight.ranges[].matchedText`，其值应等于原始命中文本；插件会自动记录兜底文本，但后端显式提供可提升删除、编辑和切换重复点后的高亮稳定性。
 
 ## Word 转 HTML 建议
 
@@ -193,6 +194,7 @@ npm run verify:npm
 - 应用入口已导入 `@jhl548/duplicate-doc-vue/style.css`。
 - `documentModel.documentId` 与 `highlights[].documentId` 一致。
 - `TextRange.start/end` 不越界。
+- 可编辑场景下 `TextRange.matchedText` 与 `plainText.slice(start, end)` 一致。
 - `rangeMap.textStart/textEnd` 与 `plainText` 对齐。
 - 后端块级换行规则与插件映射规则一致。
 - 表格、列表、标题、图片在 HTML 中仍是 Tiptap 可解析结构。

@@ -21,7 +21,7 @@ import { TextAlign } from "@tiptap/extension-text-align";
 import { TextStyle } from "@tiptap/extension-text-style";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef } from "react";
 import type { ChangeEvent } from "react";
 
 export interface DuplicateDocumentEditorProps {
@@ -49,6 +49,8 @@ export const DuplicateDocumentEditor = forwardRef<DuplicateDocumentEditorRef, Du
   onReady
 }: DuplicateDocumentEditorProps, ref) {
   const editorShellRef = useRef<HTMLDivElement | null>(null);
+  const lastHighlightSignatureRef = useRef("");
+  const highlightSignature = useMemo(() => getHighlightsSignature(highlights), [highlights]);
 
   const editor = useEditor({
     content: documentModel.html,
@@ -102,22 +104,19 @@ export const DuplicateDocumentEditor = forwardRef<DuplicateDocumentEditorRef, Du
       return;
     }
 
+    const shouldForceHighlights = editor.getHTML() !== documentModel.html;
     if (editor.getHTML() !== documentModel.html) {
       editor.commands.setContent(documentModel.html, { emitUpdate: false });
     }
-    editor.commands.setDuplicateHighlights(highlights);
-  }, [documentModel.documentId, documentModel.html, editor, highlights]);
-
-  useEffect(() => {
-    if (!editor) {
-      return;
+    const shouldApplyHighlights = shouldForceHighlights || highlightSignature !== lastHighlightSignatureRef.current;
+    if (shouldApplyHighlights) {
+      editor.commands.setDuplicateHighlights(highlights);
+      lastHighlightSignatureRef.current = highlightSignature;
     }
-
-    editor.commands.setDuplicateHighlights(highlights);
-    if (autofocusHighlight) {
+    if (shouldApplyHighlights && autofocusHighlight && highlightSignature) {
       window.requestAnimationFrame(() => scrollToActiveHighlight(editorShellRef.current));
     }
-  }, [autofocusHighlight, editor, highlights]);
+  }, [autofocusHighlight, documentModel.documentId, documentModel.html, editor, highlightSignature, highlights]);
 
   useEffect(() => {
     editor?.setEditable(editable);
@@ -236,4 +235,25 @@ function buildSnapshot(
 
 export function getFallbackPlainText(documentModel: NormalizedDocument): string {
   return plainTextFromHtml(documentModel.html);
+}
+
+function getHighlightsSignature(highlights: DuplicateHighlight[]): string {
+  return highlights
+    .map((highlight) =>
+      [
+        highlight.documentId,
+        highlight.duplicateId,
+        highlight.similarity,
+        highlight.active ? "active" : "",
+        highlight.ignored ? "ignored" : "",
+        highlight.region,
+        highlight.semanticType,
+        highlight.noiseReason,
+        highlight.tableContext?.tableId,
+        highlight.ranges
+          .map((range) => [range.blockId, range.start, range.end, range.matchedText].join(":"))
+          .join("|")
+      ].join("::")
+    )
+    .join(";;");
 }

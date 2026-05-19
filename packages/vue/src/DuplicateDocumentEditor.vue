@@ -64,6 +64,7 @@ const emit = defineEmits<{
 }>();
 
 const editorShellRef = ref<HTMLElement | null>(null);
+const lastHighlightSignature = ref("");
 const toolbarDisabled = computed(() => !props.editable || !editor.value);
 const toolbarIcons = {
   alignCenter: alignCenterIcon,
@@ -205,8 +206,35 @@ function focusHighlight() {
   });
 }
 
-function applyHighlights(shouldScroll = props.autofocusHighlight) {
+function getHighlightsSignature(highlights = props.highlights): string {
+  return highlights
+    .map((highlight) =>
+      [
+        highlight.documentId,
+        highlight.duplicateId,
+        highlight.similarity,
+        highlight.active ? "active" : "",
+        highlight.ignored ? "ignored" : "",
+        highlight.region,
+        highlight.semanticType,
+        highlight.noiseReason,
+        highlight.tableContext?.tableId,
+        highlight.ranges
+          .map((range) => [range.blockId, range.start, range.end, range.matchedText].join(":"))
+          .join("|")
+      ].join("::")
+    )
+    .join(";;");
+}
+
+function applyHighlights(shouldScroll = props.autofocusHighlight, force = false) {
+  const signature = getHighlightsSignature();
+  if (!force && signature === lastHighlightSignature.value) {
+    return;
+  }
+
   editor.value?.commands.setDuplicateHighlights(props.highlights);
+  lastHighlightSignature.value = signature;
 
   if (!shouldScroll) {
     return;
@@ -227,20 +255,19 @@ watch(
     const isSameDocument = documentId === previousDocumentId;
     if (editor.value.getHTML() !== props.documentModel.html) {
       editor.value.commands.setContent(props.documentModel.html, { emitUpdate: false });
-      applyHighlights(!isSameDocument && props.autofocusHighlight);
+      applyHighlights(!isSameDocument && props.autofocusHighlight, true);
       return;
     }
 
     if (!isSameDocument) {
-      applyHighlights(props.autofocusHighlight);
+      applyHighlights(props.autofocusHighlight, true);
     }
   }
 );
 
 watch(
-  () => props.highlights,
+  () => getHighlightsSignature(),
   () => applyHighlights(),
-  { deep: true }
 );
 
 watch(

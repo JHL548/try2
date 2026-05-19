@@ -22,7 +22,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@jhl548/duplicate-doc-core": "0.1.0",
+    "@jhl548/duplicate-doc-core": "0.1.2",
     "@tiptap/extension-color": "^3.23.4",
     "@tiptap/extension-highlight": "^3.23.4",
     "@tiptap/extension-image": "^3.23.4",
