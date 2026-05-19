@@ -13,21 +13,33 @@ on:
         required: true
         default: both
       version_bump:
-        description: 版本升级方式（仅作提示，请先在 package.json 中手动改好版本号）
+        description: 版本升级级别
         type: choice
         options:
-          - manual
-        default: manual
+          - patch
+          - minor
+          - major
+        required: true
+        default: patch
+
+permissions:
+  contents: write
 
 jobs:
   publish-core:
     if: ${{ github.event.inputs.package == 'core' || github.event.inputs.package == 'both' }}
     runs-on: ubuntu-latest
+    outputs:
+      new_version: ${{ steps.version.outputs.new_version }}
     defaults:
       run:
         working-directory: packages/core
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          fetch-tags: true
 
       - uses: actions/setup-node@v4
         with:
@@ -37,6 +49,13 @@ jobs:
       - name: 安装依赖
         run: npm ci
         working-directory: .
+
+      - name: 自动升级版本号
+        id: version
+        run: |
+          npm version ${{ github.event.inputs.version_bump }} --no-git-tag-version
+          NEW_VERSION=$(node -p "require('./package.json').version")
+          echo "new_version=${NEW_VERSION}" >> $GITHUB_OUTPUT
 
       - name: 执行发布前校验
         run: npm run prepack
@@ -46,24 +65,59 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+      - name: 提交版本变更并打 tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add packages/core/package.json packages/core/package-lock.json 2>/dev/null || git add packages/core/package.json
+          git commit -m "chore: bump @jhl548/duplicate-doc-core to v${{ steps.version.outputs.new_version }}"
+          git tag "core-v${{ steps.version.outputs.new_version }}"
+        working-directory: .
+
+      - name: 推送到仓库
+        run: git push origin main --tags
+        working-directory: .
+
   publish-vue:
     needs: publish-core
-    if: ${{ always() && (github.event.inputs.package == 'vue' || (github.event.inputs.package == 'both' && needs.publish-core.result == 'success')) }}
+    if: ${{ github.event.inputs.package == 'both' && needs.publish-core.result == 'success' }}
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: packages/vue
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          fetch-tags: true
 
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           registry-url: https://registry.npmjs.org
 
+      - name: 拉取最新版本变更（both 模式下 core 刚推送了新版本）
+        if: ${{ github.event.inputs.package == 'both' }}
+        run: git pull origin main --tags
+        working-directory: .
+
       - name: 安装依赖
         run: npm ci
         working-directory: .
+
+      - name: 更新 @jhl548/duplicate-doc-core 依赖版本（both 模式下对齐）
+        if: ${{ github.event.inputs.package == 'both' }}
+        run: |
+          CORE_VERSION="${{ needs.publish-core.outputs.new_version }}"
+          npm pkg set dependencies.@jhl548/duplicate-doc-core="^${CORE_VERSION}"
+
+      - name: 自动升级版本号
+        id: version
+        run: |
+          npm version ${{ github.event.inputs.version_bump }} --no-git-tag-version
+          NEW_VERSION=$(node -p "require('./package.json').version")
+          echo "new_version=${NEW_VERSION}" >> $GITHUB_OUTPUT
 
       - name: 执行发布前校验
         run: npm run prepack
@@ -72,3 +126,79 @@ jobs:
         run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: 提交版本变更并打 tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add packages/vue/package.json packages/vue/package-lock.json 2>/dev/null || git add packages/vue/package.json
+          if [ "${{ github.event.inputs.package }}" = "both" ]; then
+            git add packages/vue/package-lock.json 2>/dev/null || true
+          fi
+          git commit -m "chore: bump @jhl548/duplicate-doc-vue to v${{ steps.version.outputs.new_version }}"
+          git tag "vue-v${{ steps.version.outputs.new_version }}"
+        working-directory: .
+
+      - name: 推送到仓库
+        run: git push origin main --tags
+        working-directory: .
+
+  publish-vue-alone:
+    needs: publish-core
+    if: ${{ github.event.inputs.package == 'vue' && needs.publish-core.result == 'skipped' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/vue
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          fetch-tags: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+
+      - name: 拉取最新 tag
+        run: git pull origin main --tags
+        working-directory: .
+
+      - name: 安装依赖
+        run: npm ci
+        working-directory: .
+
+      - name: 确保 core 依赖为最新已发布的版本
+        run: |
+          LATEST_CORE=$(npm view @jhl548/duplicate-doc-core version)
+          npm pkg set dependencies.@jhl548/duplicate-doc-core="^${LATEST_CORE}"
+
+      - name: 自动升级版本号
+        id: version
+        run: |
+          npm version ${{ github.event.inputs.version_bump }} --no-git-tag-version
+          NEW_VERSION=$(node -p "require('./package.json').version")
+          echo "new_version=${NEW_VERSION}" >> $GITHUB_OUTPUT
+
+      - name: 执行发布前校验
+        run: npm run prepack
+
+      - name: 发布 @jhl548/duplicate-doc-vue
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: 提交版本变更并打 tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add packages/vue/package.json
+          git commit -m "chore: bump @jhl548/duplicate-doc-vue to v${{ steps.version.outputs.new_version }}"
+          git tag "vue-v${{ steps.version.outputs.new_version }}"
+        working-directory: .
+
+      - name: 推送到仓库
+        run: git push origin main --tags
+        working-directory: .
