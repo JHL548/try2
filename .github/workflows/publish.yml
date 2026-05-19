@@ -65,7 +65,7 @@ jobs:
       - name: 执行发布前校验
         run: npm run prepack
 
-      - name: npm pack dry-run（dry-run 模式）
+      - name: npm pack dry-run（dry-run 模式下安全验证）
         if: ${{ github.event.inputs.dry_run == 'true' }}
         run: npm pack --dry-run
 
@@ -114,11 +114,8 @@ jobs:
         run: git pull origin main --tags
         working-directory: .
 
-      - name: 安装依赖
-        run: npm ci
-        working-directory: .
-
-      - name: 更新 @jhl548/duplicate-doc-core 依赖版本（both 模式下对齐）
+      - name: 更新 @jhl548/duplicate-doc-core 依赖版本（对齐刚刚发布的 core）
+        if: ${{ github.event.inputs.dry_run != 'true' }}
         run: |
           CORE_VERSION="${{ needs.publish-core.outputs.new_version }}"
           npm pkg set dependencies.@jhl548/duplicate-doc-core="^${CORE_VERSION}"
@@ -130,10 +127,13 @@ jobs:
           NEW_VERSION=$(node -p "require('./package.json').version")
           echo "new_version=${NEW_VERSION}" >> $GITHUB_OUTPUT
 
+      - name: 重新安装依赖（适配更新后的 package.json）
+        run: cd ${{ github.workspace }} && npm install
+
       - name: 执行发布前校验
         run: npm run prepack
 
-      - name: npm pack dry-run（dry-run 模式）
+      - name: npm pack dry-run（dry-run 模式下安全验证）
         if: ${{ github.event.inputs.dry_run == 'true' }}
         run: npm pack --dry-run
 
@@ -177,11 +177,8 @@ jobs:
           node-version: 20
           registry-url: https://registry.npmjs.org
 
-      - name: 安装依赖
-        run: npm ci
-        working-directory: .
-
       - name: 确保 core 依赖为最新已发布的版本
+        if: ${{ github.event.inputs.dry_run != 'true' }}
         run: |
           LATEST_CORE=$(npm view @jhl548/duplicate-doc-core version)
           npm pkg set dependencies.@jhl548/duplicate-doc-core="^${LATEST_CORE}"
@@ -193,10 +190,13 @@ jobs:
           NEW_VERSION=$(node -p "require('./package.json').version")
           echo "new_version=${NEW_VERSION}" >> $GITHUB_OUTPUT
 
+      - name: 重新安装依赖（适配更新后的 package.json）
+        run: cd ${{ github.workspace }} && npm install
+
       - name: 执行发布前校验
         run: npm run prepack
 
-      - name: npm pack dry-run（dry-run 模式）
+      - name: npm pack dry-run（dry-run 模式下安全验证）
         if: ${{ github.event.inputs.dry_run == 'true' }}
         run: npm pack --dry-run
 
@@ -211,7 +211,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add packages/vue/package.json
+          git add packages/vue/package.json packages/vue/package-lock.json 2>/dev/null || git add packages/vue/package.json
           git commit -m "chore: bump @jhl548/duplicate-doc-vue to v${{ steps.version.outputs.new_version }}"
           git tag "vue-v${{ steps.version.outputs.new_version }}"
         working-directory: .
