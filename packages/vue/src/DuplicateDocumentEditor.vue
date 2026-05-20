@@ -1,11 +1,20 @@
 <script setup lang="ts">
 import {
   DuplicateHighlightExtension,
+  findOverlappingRangeMapEntries,
+  getSelectionRangeInfo,
+  calcSelectionPopupPosition,
+  getDomSelectionRect,
+  isDomSelectionInsideContainer,
   plainTextFromHtml,
   scrollToActiveHighlight,
+  type DocumentSelectionChangePayload,
   type DuplicateHighlight,
   type EditorChangePayload,
-  type NormalizedDocument
+  type NormalizedDocument,
+  type PopupPosition,
+  type RangeMapEntry,
+  type SelectionRangeInfo
 } from "@jhl548/duplicate-doc-core";
 import { Color } from "@tiptap/extension-color";
 import { Highlight } from "@tiptap/extension-highlight";
@@ -61,9 +70,26 @@ const props = withDefaults(
 const emit = defineEmits<{
   change: [payload: EditorChangePayload];
   ready: [];
+  "selection-change": [payload: DocumentSelectionChangePayload];
+}>();
+
+const slots = defineSlots<{
+  "selection-popup"?: (props: {
+    documentId: string;
+    selection: DocumentSelectionChangePayload;
+    overlappingEntries: RangeMapEntry[];
+    visible: boolean;
+    position: PopupPosition;
+  }) => unknown;
 }>();
 
 const editorShellRef = ref<HTMLElement | null>(null);
+const editorBodyRef = ref<HTMLElement | null>(null);
+const popupRef = ref<HTMLElement | null>(null);
+const popupVisible = ref(false);
+const popupPosition = ref<PopupPosition>({ top: 0, left: 0, placement: "below" });
+const popupSelection = ref<DocumentSelectionChangePayload | null>(null);
+const popupOverlappingEntries = ref<RangeMapEntry[]>([]);
 const lastHighlightSignature = ref("");
 const toolbarDisabled = computed(() => !props.editable || !editor.value);
 const toolbarIcons = {
@@ -133,7 +159,21 @@ const editor = useEditor({
   },
   onUpdate: ({ editor: updatedEditor }) => {
     emit("change", getSnapshot(updatedEditor));
-  }
+  },
+  onSelectionUpdate: ({ editor: updatedEditor }) => {
+    const rangeInfo = getSelectionRangeInfo(updatedEditor);
+
+    emit("selection-change", {
+      documentId: props.documentModel.documentId,
+      ...rangeInfo
+    });
+
+    if (rangeInfo.empty) {
+      hidePopup();
+    } else {
+      showPopup(rangeInfo);
+    }
+  },
 });
 
 interface SnapshotSource {
@@ -226,6 +266,151 @@ function getHighlightsSignature(highlights = props.highlights): string {
     )
     .join(";;");
 }
+
+function showPopup(rangeInfo: SelectionRangeInfo) {
+  const selRect = getDomSelectionRect();
+  if (!selRect) {
+    return;
+  }
+
+  const bodyEl = editorBodyRef.value;
+  if (!bodyEl || !isDomSelectionInsideContainer(bodyEl)) {
+    return;
+  }
+
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  const position = calcSelectionPopupPosition(selRect, viewportWidth, viewportHeight);
+
+  const withDocumentId: DocumentSelectionChangePayload = {
+    documentId: props.documentModel.documentId,
+    ...rangeInfo
+  };
+
+  popupSelection.value = withDocumentId;
+  popupPosition.value = position;
+
+  if (rangeInfo.plainTextOffset) {
+    popupOverlappingEntries.value = findOverlappingRangeMapEntries(
+      props.documentModel.rangeMap,
+      rangeInfo.plainTextOffset
+    );
+  } else {
+    popupOverlappingEntries.value = [];
+  }
+
+  popupVisible.value = true;
+
+  nextTick(() => {
+    adjustPopupPosition();
+  });
+}
+
+function repositionPopup() {
+  const selRect = getDomSelectionRect();
+  const bodyEl = editorBodyRef.value;
+  if (!selRect || !bodyEl) {
+    hidePopup();
+    return;
+  }
+
+  if (!isDomSelectionInsideContainer(bodyEl)) {
+    hidePopup();
+    return;
+  }
+
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  const position = calcSelectionPopupPosition(selRect, viewportWidth, viewportHeight);
+
+  popupPosition.value = position;
+
+  nextTick(() => {
+    adjustPopupPosition();
+  });
+}
+
+let scrollRafId = 0;
+function throttledRepositionPopup() {
+  if (scrollRafId) {
+    return;
+  }
+  scrollRafId = window.requestAnimationFrame(() => {
+    scrollRafId = 0;
+    repositionPopup();
+  });
+}
+
+function hidePopup() {
+  popupVisible.value = false;
+  popupSelection.value = null;
+  popupOverlappingEntries.value = [];
+}
+
+function adjustPopupPosition() {
+  const popupEl = popupRef.value;
+  if (!popupEl) {
+    return;
+  }
+
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  const rect = popupEl.getBoundingClientRect();
+  let { top, left } = popupPosition.value;
+
+  if (left + rect.width > viewportWidth) {
+    left = viewportWidth - rect.width - 8;
+  }
+  if (top + rect.height > viewportHeight) {
+    top = viewportHeight - rect.height - 8;
+  }
+
+  left = Math.max(8, left);
+  top = Math.max(8, top);
+
+  popupPosition.value = { ...popupPosition.value, top, left };
+}
+
+function handlePopupClick(event: MouseEvent) {
+  const popupEl = popupRef.value;
+  if (!popupVisible.value || !popupEl) {
+    return;
+  }
+
+  const target = event.target as Node;
+  if (!popupEl.contains(target)) {
+    hidePopup();
+  }
+}
+
+function handlePopupKeydown(event: KeyboardEvent) {
+  if (event.key === "Escape" && popupVisible.value) {
+    hidePopup();
+  }
+}
+
+if (typeof window !== "undefined") {
+  onBeforeUnmount(() => {
+    window.removeEventListener("mousedown", handlePopupClick);
+    window.removeEventListener("keydown", handlePopupKeydown);
+    window.removeEventListener("scroll", throttledRepositionPopup, true);
+    window.removeEventListener("resize", throttledRepositionPopup);
+  });
+}
+
+watch(popupVisible, (visible) => {
+  if (visible) {
+    window.addEventListener("mousedown", handlePopupClick);
+    window.addEventListener("keydown", handlePopupKeydown);
+    window.addEventListener("scroll", throttledRepositionPopup, true);
+    window.addEventListener("resize", throttledRepositionPopup);
+  } else {
+    window.removeEventListener("mousedown", handlePopupClick);
+    window.removeEventListener("keydown", handlePopupKeydown);
+    window.removeEventListener("scroll", throttledRepositionPopup, true);
+    window.removeEventListener("resize", throttledRepositionPopup);
+  }
+});
 
 function applyHighlights(shouldScroll = props.autofocusHighlight, force = false) {
   const signature = getHighlightsSignature();
@@ -343,8 +528,33 @@ defineExpose({
         <button type="button" class="dupdoc-toolbar-button dupdoc-toolbar-button--primary" data-tooltip="定位当前重复点" aria-label="定位当前重复点" @click="focusHighlight"><span class="dupdoc-toolbar-icon" v-html="toolbarIcons.locate"></span></button>
       </div>
     </div>
-    <div class="dupdoc-editor__body">
+    <div ref="editorBodyRef" class="dupdoc-editor__body">
       <EditorContent v-if="editor" :editor="editor" />
+      <Teleport to="body">
+        <div
+          v-if="popupVisible && popupSelection && slots['selection-popup']"
+          ref="popupRef"
+          class="dupdoc-selection-popup"
+          :style="{
+            position: 'fixed',
+            top: popupPosition.top + 'px',
+            left: popupPosition.left + 'px',
+            maxWidth: '100vw',
+            maxHeight: '100vh',
+            width: 'auto',
+            height: 'auto'
+          }"
+        >
+          <slot
+            name="selection-popup"
+            :document-id="props.documentModel.documentId"
+            :selection="popupSelection"
+            :overlapping-entries="popupOverlappingEntries"
+            :visible="popupVisible"
+            :position="popupPosition"
+          />
+        </div>
+      </Teleport>
     </div>
   </div>
 </template>

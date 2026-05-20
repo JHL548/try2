@@ -107,3 +107,13 @@ export interface EditorChangePayload {
   plainText: string;
   json?: unknown;
 }
+
+export interface DocumentSelectionChangePayload {
+  documentId: string;
+  selectedText: string;
+  from: number;
+  to: number;
+  empty: boolean;
+  plainTextOffset: { start: number; end: number } | null;
+  selectedRange: TextRange | null;
+}

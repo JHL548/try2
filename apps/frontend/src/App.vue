@@ -4,7 +4,8 @@ import {
   type DuplicateHighlight,
   type DuplicatePoint,
   type EditorChangePayload,
-  type NormalizedDocument
+  type NormalizedDocument,
+  type RangeMapEntry
 } from "@jhl548/duplicate-doc-vue";
 import VueJsonPretty from "vue-json-pretty";
 import "vue-json-pretty/lib/styles.css";
@@ -476,7 +477,30 @@ watch(activeSlaveDocumentId, () => {
           :document-model="mainDocumentForEditor"
           :highlights="mainHighlights"
           @change="handleEditorChange"
-        />
+        >
+          <template #selection-popup="{ selection, overlappingEntries }">
+            <div class="selection-popup-demo">
+              <div class="selection-popup-demo__header">
+                <span>选中文本信息</span>
+                <small>{{ selection.selectedText.length }} 字符</small>
+              </div>
+              <div class="selection-popup-demo__section">
+                <div class="selection-popup-demo__label">选中文字</div>
+                <div class="selection-popup-demo__text">{{ selection.selectedText }}</div>
+              </div>
+              <div class="selection-popup-demo__section">
+                <div class="selection-popup-demo__label">关联文档结构</div>
+                <VueJsonPretty
+                  :data="overlappingEntries"
+                  :deep="2"
+                  :show-length="true"
+                  :show-line="true"
+                  :show-icon="false"
+                />
+              </div>
+            </div>
+          </template>
+        </DuplicateDocumentEditor>
       </article>
 
       <article class="document-panel document-panel--slave">
@@ -507,7 +531,30 @@ watch(activeSlaveDocumentId, () => {
           :document-model="slaveDocumentForEditor"
           :highlights="slaveHighlights"
           @change="handleEditorChange"
-        />
+        >
+          <template #selection-popup="{ selection, overlappingEntries }">
+            <div class="selection-popup-demo">
+              <div class="selection-popup-demo__header">
+                <span>选中文本信息</span>
+                <small>{{ selection.selectedText.length }} 字符</small>
+              </div>
+              <div class="selection-popup-demo__section">
+                <div class="selection-popup-demo__label">选中文字</div>
+                <div class="selection-popup-demo__text">{{ selection.selectedText }}</div>
+              </div>
+              <div class="selection-popup-demo__section">
+                <div class="selection-popup-demo__label">关联文档结构</div>
+                <VueJsonPretty
+                  :data="overlappingEntries"
+                  :deep="2"
+                  :show-length="true"
+                  :show-line="true"
+                  :show-icon="false"
+                />
+              </div>
+            </div>
+          </template>
+        </DuplicateDocumentEditor>
       </article>
     </section>
 

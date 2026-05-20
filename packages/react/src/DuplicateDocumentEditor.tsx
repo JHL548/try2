@@ -1,10 +1,19 @@
 import {
   DuplicateHighlightExtension,
+  findOverlappingRangeMapEntries,
+  getSelectionRangeInfo,
+  calcSelectionPopupPosition,
+  getDomSelectionRect,
+  isDomSelectionInsideContainer,
   plainTextFromHtml,
   scrollToActiveHighlight,
+  type DocumentSelectionChangePayload,
   type DuplicateHighlight,
   type EditorChangePayload,
-  type NormalizedDocument
+  type NormalizedDocument,
+  type PopupPosition,
+  type RangeMapEntry,
+  type SelectionRangeInfo
 } from "@jhl548/duplicate-doc-core";
 import { Color } from "@tiptap/extension-color";
 import { Highlight } from "@tiptap/extension-highlight";
@@ -21,8 +30,9 @@ import { TextAlign } from "@tiptap/extension-text-align";
 import { TextStyle } from "@tiptap/extension-text-style";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef } from "react";
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
+import { createPortal } from "react-dom";
 
 export interface DuplicateDocumentEditorProps {
   documentModel: NormalizedDocument;
@@ -31,6 +41,14 @@ export interface DuplicateDocumentEditorProps {
   autofocusHighlight?: boolean;
   onChange?: (payload: EditorChangePayload) => void;
   onReady?: () => void;
+  onSelectionChange?: (payload: DocumentSelectionChangePayload) => void;
+  renderSelectionPopup?: (data: {
+    documentId: string;
+    selection: DocumentSelectionChangePayload;
+    overlappingEntries: RangeMapEntry[];
+    visible: boolean;
+    position: PopupPosition;
+  }) => React.ReactNode;
 }
 
 export interface DuplicateDocumentEditorRef {
@@ -46,10 +64,19 @@ export const DuplicateDocumentEditor = forwardRef<DuplicateDocumentEditorRef, Du
   editable = true,
   autofocusHighlight = true,
   onChange,
-  onReady
+  onReady,
+  onSelectionChange,
+  renderSelectionPopup
 }: DuplicateDocumentEditorProps, ref) {
   const editorShellRef = useRef<HTMLDivElement | null>(null);
+  const editorBodyRef = useRef<HTMLDivElement | null>(null);
+  const popupRef = useRef<HTMLDivElement | null>(null);
   const lastHighlightSignatureRef = useRef("");
+  const scrollRafRef = useRef(0);
+  const [popupVisible, setPopupVisible] = useState(false);
+  const [popupPosition, setPopupPosition] = useState<PopupPosition>({ top: 0, left: 0, placement: "below" });
+  const [popupSelection, setPopupSelection] = useState<DocumentSelectionChangePayload | null>(null);
+  const [popupOverlappingEntries, setPopupOverlappingEntries] = useState<RangeMapEntry[]>([]);
   const highlightSignature = useMemo(() => getHighlightsSignature(highlights), [highlights]);
 
   const editor = useEditor({
@@ -83,7 +110,23 @@ export const DuplicateDocumentEditor = forwardRef<DuplicateDocumentEditorRef, Du
     },
     onUpdate: ({ editor: updatedEditor }) => {
       onChange?.(buildSnapshot(documentModel, updatedEditor));
-    }
+    },
+    onSelectionUpdate: ({ editor: updatedEditor }) => {
+      const rangeInfo = getSelectionRangeInfo(updatedEditor);
+
+      onSelectionChange?.({
+        documentId: documentModel.documentId,
+        ...rangeInfo
+      });
+
+      if (rangeInfo.empty) {
+        setPopupVisible(false);
+        setPopupSelection(null);
+        setPopupOverlappingEntries([]);
+      } else {
+        showPopup(rangeInfo);
+      }
+    },
   });
 
   useImperativeHandle(
@@ -160,6 +203,150 @@ export const DuplicateDocumentEditor = forwardRef<DuplicateDocumentEditorRef, Du
     editor?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
   }
 
+  const showPopup = useCallback((rangeInfo: SelectionRangeInfo) => {
+    const selRect = getDomSelectionRect();
+    if (!selRect) {
+      return;
+    }
+
+    if (editorBodyRef.current && !isDomSelectionInsideContainer(editorBodyRef.current)) {
+      return;
+    }
+
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const position = calcSelectionPopupPosition(selRect, viewportWidth, viewportHeight);
+
+    const withDocumentId: DocumentSelectionChangePayload = {
+      documentId: documentModel.documentId,
+      ...rangeInfo
+    };
+
+    setPopupSelection(withDocumentId);
+    setPopupPosition(position);
+
+    if (rangeInfo.plainTextOffset) {
+      setPopupOverlappingEntries(
+        findOverlappingRangeMapEntries(documentModel.rangeMap, rangeInfo.plainTextOffset)
+      );
+    } else {
+      setPopupOverlappingEntries([]);
+    }
+
+    setPopupVisible(true);
+
+    window.requestAnimationFrame(() => {
+      adjustPopupPosition();
+    });
+  }, [documentModel.documentId, documentModel.rangeMap]);
+
+  const adjustPopupPosition = useCallback(() => {
+    const popupEl = popupRef.current;
+    if (!popupEl) {
+      return;
+    }
+
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const rect = popupEl.getBoundingClientRect();
+
+    setPopupPosition((prev) => {
+      let left = prev.left;
+      let top = prev.top;
+
+      if (left + rect.width > viewportWidth) {
+        left = viewportWidth - rect.width - 8;
+      }
+      if (top + rect.height > viewportHeight) {
+        top = viewportHeight - rect.height - 8;
+      }
+
+      left = Math.max(8, left);
+      top = Math.max(8, top);
+
+      return { ...prev, top, left };
+    });
+  }, []);
+
+  const hidePopup = useCallback(() => {
+    setPopupVisible(false);
+    setPopupSelection(null);
+    setPopupOverlappingEntries([]);
+  }, []);
+
+  const repositionPopup = useCallback(() => {
+    if (!editorBodyRef.current) {
+      return;
+    }
+
+    const selRect = getDomSelectionRect();
+    const bodyEl = editorBodyRef.current;
+    if (!selRect) {
+      hidePopup();
+      return;
+    }
+
+    if (!isDomSelectionInsideContainer(bodyEl)) {
+      hidePopup();
+      return;
+    }
+
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const position = calcSelectionPopupPosition(selRect, viewportWidth, viewportHeight);
+
+    setPopupPosition(position);
+
+    window.requestAnimationFrame(() => {
+      adjustPopupPosition();
+    });
+  }, [hidePopup]);
+
+  const throttledReposition = useCallback(() => {
+    if (scrollRafRef.current) {
+      return;
+    }
+    scrollRafRef.current = window.requestAnimationFrame(() => {
+      scrollRafRef.current = 0;
+      repositionPopup();
+    });
+  }, [repositionPopup]);
+
+  useEffect(() => {
+    if (!popupVisible) {
+      return;
+    }
+
+    const handleClick = (event: MouseEvent) => {
+      const popupEl = popupRef.current;
+      if (!popupEl) {
+        return;
+      }
+      const target = event.target as Node;
+      if (!popupEl.contains(target)) {
+        hidePopup();
+      }
+    };
+
+    const handleKeydown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        hidePopup();
+      }
+    };
+
+    window.addEventListener("mousedown", handleClick);
+    window.addEventListener("keydown", handleKeydown);
+    window.addEventListener("scroll", throttledReposition, true);
+    window.addEventListener("resize", throttledReposition);
+
+    return () => {
+      window.removeEventListener("mousedown", handleClick);
+      window.removeEventListener("keydown", handleKeydown);
+      window.removeEventListener("scroll", throttledReposition, true);
+      window.removeEventListener("resize", throttledReposition);
+    };
+  }, [popupVisible, hidePopup, throttledReposition]);
+
   return (
     <div ref={editorShellRef} className="dupdoc-editor">
       <div className="dupdoc-editor__toolbar" aria-label="文档编辑工具">
@@ -214,8 +401,32 @@ export const DuplicateDocumentEditor = forwardRef<DuplicateDocumentEditorRef, Du
           <button type="button" className="dupdoc-toolbar-button dupdoc-toolbar-button--primary" data-tooltip="定位当前重复点" aria-label="定位当前重复点" onClick={() => scrollToActiveHighlight(editorShellRef.current)}><span className="dupdoc-toolbar-icon">Go</span></button>
         </div>
       </div>
-      <div className="dupdoc-editor__body">
+      <div ref={editorBodyRef} className="dupdoc-editor__body">
         <EditorContent editor={editor} />
+        {popupVisible && popupSelection && renderSelectionPopup && createPortal(
+          <div
+            ref={popupRef}
+            className="dupdoc-selection-popup"
+            style={{
+              position: "fixed" as const,
+              top: popupPosition.top + "px",
+              left: popupPosition.left + "px",
+              maxWidth: "100vw",
+              maxHeight: "100vh",
+              width: "auto",
+              height: "auto"
+            }}
+          >
+            {renderSelectionPopup({
+              documentId: documentModel.documentId,
+              selection: popupSelection,
+              overlappingEntries: popupOverlappingEntries,
+              visible: popupVisible,
+              position: popupPosition
+            })}
+          </div>,
+          document.body
+        )}
       </div>
     </div>
   );
