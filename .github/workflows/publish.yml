@@ -80,7 +80,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add packages/core/package.json packages/core/package-lock.json 2>/dev/null || git add packages/core/package.json
+          git add package-lock.json packages/core/package.json
           git commit -m "chore: bump @jhl548/duplicate-doc-core to v${{ steps.version.outputs.new_version }}"
           git tag "core-v${{ steps.version.outputs.new_version }}"
         working-directory: .
@@ -114,12 +114,6 @@ jobs:
         run: git pull origin main --tags
         working-directory: .
 
-      - name: 更新 @jhl548/duplicate-doc-core 依赖版本（对齐刚刚发布的 core）
-        if: ${{ github.event.inputs.dry_run != 'true' }}
-        run: |
-          CORE_VERSION="${{ needs.publish-core.outputs.new_version }}"
-          npm pkg set dependencies.@jhl548/duplicate-doc-core="^${CORE_VERSION}"
-
       - name: 自动升级版本号
         id: version
         run: |
@@ -148,7 +142,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add packages/vue/package.json packages/vue/package-lock.json 2>/dev/null || git add packages/vue/package.json
+          git add package-lock.json packages/vue/package.json
           git commit -m "chore: bump @jhl548/duplicate-doc-vue to v${{ steps.version.outputs.new_version }}"
           git tag "vue-v${{ steps.version.outputs.new_version }}"
         working-directory: .
@@ -211,7 +205,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add packages/vue/package.json packages/vue/package-lock.json 2>/dev/null || git add packages/vue/package.json
+          git add package-lock.json packages/vue/package.json
           git commit -m "chore: bump @jhl548/duplicate-doc-vue to v${{ steps.version.outputs.new_version }}"
           git tag "vue-v${{ steps.version.outputs.new_version }}"
         working-directory: .
