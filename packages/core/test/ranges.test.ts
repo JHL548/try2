@@ -1,7 +1,12 @@
 import { Schema } from "@tiptap/pm/model";
 import { describe, expect, it } from "vitest";
 import { normalizeRange, normalizeRanges } from "../src/ranges";
-import { buildPlainTextPositionMap, mapTextRangeToDocPositions } from "../src/tiptapDuplicateHighlight";
+import {
+  buildPlainTextPositionMap,
+  hasResolvableHighlightInPlainText,
+  mapTextRangeToDocPositions,
+  resolveTextRangeInPlainText
+} from "../src/tiptapDuplicateHighlight";
 
 const schema = new Schema({
   nodes: {
@@ -104,5 +109,67 @@ describe("plain text position mapping", () => {
 
     expect(positions).toHaveLength("第一章：资格审查。\n投标人须提供资质证书。\n结束".length);
     expect(mapTextRangeToDocPositions(positions, { start: 10, end: 21 })).not.toBeNull();
+  });
+});
+
+describe("plain text highlight resolution", () => {
+  it("resolves direct ranges when the expected text still matches", () => {
+    expect(
+      resolveTextRangeInPlainText("主文件内容重复片段结束", {
+        start: 5,
+        end: 9,
+        matchedText: "重复片段"
+      })
+    ).toEqual({
+      start: 5,
+      end: 9,
+      matchedText: "重复片段",
+      source: "direct"
+    });
+  });
+
+  it("falls back to the closest matching text after content is edited before the range", () => {
+    expect(
+      resolveTextRangeInPlainText("新增内容，主文件内容重复片段结束", {
+        start: 5,
+        end: 9,
+        matchedText: "重复片段"
+      })
+    ).toEqual({
+      start: 10,
+      end: 14,
+      matchedText: "重复片段",
+      source: "fallback"
+    });
+  });
+
+  it("treats a range as unresolved when the expected text no longer exists", () => {
+    expect(
+      resolveTextRangeInPlainText("新增内容，主文件内容已改写结束", {
+        start: 5,
+        end: 9,
+        matchedText: "重复片段"
+      })
+    ).toBeNull();
+  });
+
+  it("checks whether any highlight range can be resolved in the current text", () => {
+    expect(
+      hasResolvableHighlightInPlainText("从文件一无关内容", {
+        duplicateId: "dup-1",
+        documentId: "doc-1",
+        similarity: 0.9,
+        ranges: [{ start: 0, end: 4, matchedText: "重复片段" }]
+      })
+    ).toBe(false);
+
+    expect(
+      hasResolvableHighlightInPlainText("从文件二包含重复片段", {
+        duplicateId: "dup-1",
+        documentId: "doc-2",
+        similarity: 0.9,
+        ranges: [{ start: 0, end: 4, matchedText: "重复片段" }]
+      })
+    ).toBe(true);
   });
 });
