@@ -1,6 +1,6 @@
 {
   "name": "@jhl548/duplicate-doc-core",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
@@ -10,6 +10,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./highlight-resolution": {
+      "types": "./dist/highlightResolution.d.ts",
+      "import": "./dist/highlightResolution.js"
     },
     "./style.css": "./src/style.css"
   },

@@ -1,12 +1,8 @@
 import { Schema } from "@tiptap/pm/model";
 import { describe, expect, it } from "vitest";
+import { hasResolvableHighlightInPlainText, resolveTextRangeInPlainText } from "../src/highlightResolution";
 import { normalizeRange, normalizeRanges } from "../src/ranges";
-import {
-  buildPlainTextPositionMap,
-  hasResolvableHighlightInPlainText,
-  mapTextRangeToDocPositions,
-  resolveTextRangeInPlainText
-} from "../src/tiptapDuplicateHighlight";
+import { buildPlainTextPositionMap, mapTextRangeToDocPositions } from "../src/tiptapDuplicateHighlight";
 
 const schema = new Schema({
   nodes: {

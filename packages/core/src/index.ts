@@ -1,4 +1,5 @@
 export * from "./colors.js";
+export * from "./highlightResolution.js";
 export * from "./position.js";
 export * from "./ranges.js";
 export * from "./scroll.js";

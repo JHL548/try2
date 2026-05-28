@@ -12,7 +12,7 @@
     "typecheck": "vue-tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@jhl548/duplicate-doc-vue": "0.1.3",
+    "@jhl548/duplicate-doc-vue": "0.1.5",
     "@vitejs/plugin-vue": "latest",
     "vue": "latest",
     "vue-json-pretty": "^2.6.0"

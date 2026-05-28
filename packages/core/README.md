@@ -23,13 +23,13 @@ npm install @jhl548/duplicate-doc-core
 import {
   DuplicateHighlightExtension,
   filterHighlightsForDocument,
-  hasResolvableHighlightInPlainText,
   type DuplicateHighlight,
   type NormalizedDocument
 } from "@jhl548/duplicate-doc-core";
+import { hasResolvableHighlightInPlainText } from "@jhl548/duplicate-doc-core/highlight-resolution";
 import "@jhl548/duplicate-doc-core/style.css";
 ```
 
 This package is intended to be consumed directly by framework adapters such as `@jhl548/duplicate-doc-vue`, or by applications that need access to the shared duplicate document model.
 
-Use `hasResolvableHighlightInPlainText(plainText, highlight)` before switching documents when the app needs to know whether at least one highlight range can still be resolved in the current edited text.
+Use `hasResolvableHighlightInPlainText(plainText, highlight)` from the pure `highlight-resolution` subpath before switching documents when the app needs to know whether at least one highlight range can still be resolved in the current edited text.
